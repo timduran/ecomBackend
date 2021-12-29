@@ -4,19 +4,75 @@ const { Product, Category, Tag, ProductTag } = require('../models')
 // The `/api/products` endpoint
 
 // get all products
-router.get('/products', async function (req, res) {
+router.get('/products', (req, res) => {
   // find all products
   // be sure to include its associated Category and Tag data
-  const products = await Product.findAll({ include: [Category, Tag] })
-  res.json(products)
+  Product.findAll({
+    attributes: [
+      'id',
+      'product_name',
+      'price',
+      'stock'
+    ],
+    include: [
+      {
+        model: Tag,
+        attributes: ['tag_name'],
+        through: ProductTag,
+        as: 'tags'
+      },
+      {
+        model: Category,
+        attributes: [
+          'id',
+          'category_name'
+        ]
+      }
+    ]
+  })
+    .then(dbProductData => res.json(dbProductData))
+    .catch(err => {
+      console.log(err);
+      res.status(500).json(err);
+    });
+ 
 })
 
 // get one product
-router.get('/products/:id', async function (req, res) {
+router.get('/products/:id', (req, res)  => {
   // find a single product by its `id`
   // be sure to include its associated Category and Tag data
-  const products = await Product.findOne({ where: { id: req.params.id }, include: [Category, Tag] })
-  res.json(products)
+  Product.findOne({
+    where: {
+      id: req.params.id
+    },
+    attributes: [
+      'id',
+      'product_name',
+      'price',
+      'stock'
+    ],
+    include: [
+      {
+        model: Tag,
+        attributes: ['tag_name'],
+        through: ProductTag,
+        as: 'tags'
+      },
+      {
+        model: Category,
+        attributes: [
+          'id',
+          'category_name'
+        ]
+      }
+    ]
+  })
+    .then(dbProductData => res.json(dbProductData))
+    .catch(err => {
+      console.log(err);
+      res.status(500).json(err);
+    });
 })
 
 // create new product
@@ -96,7 +152,16 @@ router.put('/products/:id', (req, res) => {
 router.delete('/products/:id', (req, res) => {
   // delete one product by its `id` value
   Product.destroy({ where: { id: req.params.id } })
-  res.sendStatus(200)
+  .then(dbProductData => {
+    if(!dbProductData) {
+      res.status(404).json({messsage: 'There is no product with that ID!'})
+      return;
+    }
+    res.sendStatus(200)
+  }).catch((err) => {
+    // console.log(err);
+    res.status(400).json(err)
+  })
 })
 
 module.exports = router
